@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>位置情報アプリ</title>
+    <title>位置情報常時監視アプリ</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -16,16 +16,32 @@
     </style>
 </head>
 <body>
-    <h1>位置情報アプリ</h1>
-    <button onclick="getLocation()">位置情報を取得</button>
-    <div id="locationInfo"></div>
+    <h1>位置情報常時監視アプリ</h1>
+    <button onclick="startWatching()">監視開始</button>
+    <button onclick="stopWatching()">監視停止</button>
+    <div id="locationInfo">位置情報はここに表示されます</div>
 
     <script>
-        function getLocation() {
+        let watchId = null;
+
+        function startWatching() {
             if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(showPosition, showError);
+                watchId = navigator.geolocation.watchPosition(showPosition, showError, {
+                    enableHighAccuracy: true,
+                    timeout: 5000,
+                    maximumAge: 0
+                });
+                document.getElementById("locationInfo").innerHTML = "位置情報の監視を開始しました...";
             } else {
                 alert("お使いのブラウザは位置情報をサポートしていません。");
+            }
+        }
+
+        function stopWatching() {
+            if (watchId !== null) {
+                navigator.geolocation.clearWatch(watchId);
+                watchId = null;
+                document.getElementById("locationInfo").innerHTML = "位置情報の監視を停止しました";
             }
         }
 
@@ -33,11 +49,13 @@
             const latitude = position.coords.latitude;
             const longitude = position.coords.longitude;
             const altitude = position.coords.altitude;
+            const accuracy = position.coords.accuracy;
 
-            let info = `緯度: ${latitude}<br>経度: ${longitude}<br>`;
+            let info = `緯度: ${latitude.toFixed(6)}<br>経度: ${longitude.toFixed(6)}<br>`;
+            info += `精度: ${accuracy.toFixed(2)} メートル<br>`;
             
             if (altitude !== null) {
-                info += `高度: ${altitude} メートル`;
+                info += `高度: ${altitude.toFixed(2)} メートル`;
             } else {
                 info += "高度: 利用不可";
             }
@@ -46,20 +64,22 @@
         }
 
         function showError(error) {
+            let errorMessage;
             switch(error.code) {
                 case error.PERMISSION_DENIED:
-                    alert("ユーザーが位置情報の使用を許可しませんでした。");
+                    errorMessage = "ユーザーが位置情報の使用を許可しませんでした。";
                     break;
                 case error.POSITION_UNAVAILABLE:
-                    alert("位置情報が利用できません。");
+                    errorMessage = "位置情報が利用できません。";
                     break;
                 case error.TIMEOUT:
-                    alert("位置情報の取得がタイムアウトしました。");
+                    errorMessage = "位置情報の取得がタイムアウトしました。";
                     break;
                 case error.UNKNOWN_ERROR:
-                    alert("不明なエラーが発生しました。");
+                    errorMessage = "不明なエラーが発生しました。";
                     break;
             }
+            document.getElementById("locationInfo").innerHTML = `エラー: ${errorMessage}`;
         }
     </script>
 </body>
